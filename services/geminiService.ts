@@ -176,38 +176,71 @@ Output: Return ONLY the final adjusted image. Do not return text.`;
     return handleApiResponse(response, 'adjustment');
 };
 
+export interface TextStyle {
+  font?: string;
+  size?: string;
+  color?: string;
+  bold?: boolean;
+  italic?: boolean;
+}
+
 /**
- * Finds and replaces text in an image, matching the original style.
+ * Finds and replaces text in an image, matching the original style or user-provided styles.
  * @param originalImage The original image file.
  * @param oldText The text to find and replace in the image.
  * @param newText The new text to insert.
+ * @param style Optional styling hints for the new text.
  * @returns A promise that resolves to the data URL of the edited image.
  */
 export const generateTextEditImage = async (
     originalImage: File,
     oldText: string,
     newText: string,
+    style: TextStyle = {}
 ): Promise<string> => {
-    console.log(`Starting text edit: replacing "${oldText}" with "${newText}"`);
+    console.log(`Starting text edit: replacing "${oldText}" with "${newText}"`, { style });
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
     
     const originalImagePart = await fileToPart(originalImage);
+    
+    // Build style instructions dynamically
+    const styleParts: string[] = [];
+    if (style.font) styleParts.push(`- Font face similar to: ${style.font}`);
+    if (style.size) styleParts.push(`- Size: ${style.size}`);
+    if (style.color) styleParts.push(`- Color: ${style.color}`);
+    if (style.bold) styleParts.push(`- Weight: Bold`);
+    if (style.italic) styleParts.push(`- Style: Italic`);
+
+    let styleInstructions = '';
+    if (styleParts.length > 0) {
+        styleInstructions = `
+Key Style Instructions for the new text:
+${styleParts.join('\n')}
+
+If a style attribute is not specified above, you MUST intelligently match it to the original text's style ("${oldText}"). If there was no original text, match the surrounding environment for a natural look.
+`;
+    } else {
+        styleInstructions = `
+Key Style Instructions for the new text:
+The new text, "${newText}", MUST perfectly match the style of the original text ("${oldText}"). This includes:
+- Font face and characteristics.
+- Color, gradients, and textures.
+- Size and kerning.
+- Perspective, warping, and rotation.
+- Lighting, shadows, and highlights.
+`;
+    }
+
     const prompt = `You are an expert photo editor AI specializing in typography and photorealistic text integration. Your task is to find and replace text within the provided image.
 
 Text to find: "${oldText}"
 Text to replace it with: "${newText}"
-
-Key Instructions:
+${styleInstructions}
+General Instructions:
 1.  **Find the Text:** Accurately locate the instance of "${oldText}" in the image. If there are multiple instances, replace the most prominent one.
 2.  **Reconstruct Background:** Before adding the new text, intelligently remove the original text and reconstruct the background behind it as if the text was never there. This is a critical step.
-3.  **Match Style:** The new text, "${newText}", must perfectly match the style of the original text. This includes:
-    -   Font face and characteristics.
-    -   Color, gradients, and textures.
-    -   Size and kerning.
-    -   Perspective, warping, and rotation.
-    -   Lighting, shadows, and highlights.
-4.  **Seamless Integration:** The final result should be photorealistic and indistinguishable from a real photograph. The new text should look like it was part of the original scene.
-5.  **Preserve Image:** The rest of the image (everything other than the text being replaced) must remain absolutely identical to the original.
+3.  **Seamless Integration:** The final result should be photorealistic and indistinguishable from a real photograph. The new text should look like it was part of the original scene.
+4.  **Preserve Image:** The rest of the image (everything other than the text being replaced) must remain absolutely identical to the original.
 
 Output: Return ONLY the final edited image in the same resolution. Do not return any text, explanations, or dialogue.`;
     const textPart = { text: prompt };

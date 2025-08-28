@@ -6,7 +6,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop';
-import { generateEditedImage, generateFilteredImage, generateAdjustedImage, generateTextEditImage } from './services/geminiService';
+import { generateEditedImage, generateFilteredImage, generateAdjustedImage, generateTextEditImage, type TextStyle } from './services/geminiService';
 import Header from './components/Header';
 import Spinner from './components/Spinner';
 import FilterPanel from './components/FilterPanel';
@@ -182,7 +182,7 @@ const App: React.FC = () => {
     }
   }, [currentImage, addImageToHistory]);
   
-  const handleApplyTextEdit = useCallback(async (oldText: string, newText: string) => {
+  const handleApplyTextEdit = useCallback(async (oldText: string, newText: string, style: TextStyle) => {
     if (!currentImage) {
       setError('No image loaded to edit text on.');
       return;
@@ -192,7 +192,7 @@ const App: React.FC = () => {
     setError(null);
     
     try {
-        const editedImageUrl = await generateTextEditImage(currentImage, oldText, newText);
+        const editedImageUrl = await generateTextEditImage(currentImage, oldText, newText, style);
         const newImageFile = dataURLtoFile(editedImageUrl, `text-edited-${Date.now()}.png`);
         addImageToHistory(newImageFile);
     } catch (err) {
