@@ -35,7 +35,8 @@ const TextPanel: React.FC<TextPanelProps> = ({ onApplyTextEdit, isLoading }) => 
   };
   
   const commonInputClass = "flex-grow bg-gray-800 border border-gray-600 text-gray-200 rounded-lg p-4 focus:ring-2 focus:ring-blue-500 focus:outline-none transition w-full disabled:cursor-not-allowed disabled:opacity-60 text-base";
-
+  
+  const isValidHex = (colorStr: string) => /^#[0-9A-F]{6}$/i.test(colorStr);
 
   return (
     <div className="w-full bg-gray-800/50 border border-gray-700 rounded-lg p-4 flex flex-col gap-4 animate-fade-in backdrop-blur-sm">
@@ -90,15 +91,27 @@ const TextPanel: React.FC<TextPanelProps> = ({ onApplyTextEdit, isLoading }) => 
           disabled={isLoading}
           aria-label="Font size"
         />
-        <input
-          type="text"
-          value={color}
-          onChange={(e) => setColor(e.target.value)}
-          placeholder="Color (e.g., 'Golden', '#FFD700')"
-          className={commonInputClass}
-          disabled={isLoading}
-          aria-label="Font color"
-        />
+        <div className="flex items-center bg-gray-800 border border-gray-600 rounded-lg focus-within:ring-2 focus-within:ring-blue-500 transition w-full overflow-hidden">
+          <div className="relative flex items-center justify-center p-2 h-full">
+              <input
+                  type="color"
+                  value={isValidHex(color) ? color : '#ffffff'}
+                  onChange={(e) => setColor(e.target.value)}
+                  className="w-10 h-10 p-0 border-none bg-transparent cursor-pointer appearance-none [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-md [&::-webkit-color-swatch]:border-none"
+                  disabled={isLoading}
+                  aria-label="Font color picker"
+              />
+          </div>
+          <input
+              type="text"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+              placeholder="Color (e.g., 'Golden')"
+              className="flex-grow bg-transparent text-gray-200 p-4 focus:outline-none w-full disabled:cursor-not-allowed disabled:opacity-60 text-base border-l border-gray-700"
+              disabled={isLoading}
+              aria-label="Font color text input"
+          />
+        </div>
         <div className="flex items-center justify-start gap-6 sm:justify-center bg-gray-800/50 border border-gray-700/60 rounded-lg px-4">
             <label className="flex items-center gap-2 cursor-pointer text-gray-300 hover:text-white transition">
                 <input
