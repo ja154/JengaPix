@@ -259,3 +259,56 @@ Output: Return ONLY the final edited image in the same resolution. Do not return
     
     return handleApiResponse(response, 'text edit');
 };
+
+
+/**
+ * Generates a textual description for an image.
+ * @param originalImage The image file to describe.
+ * @returns A promise that resolves to a string description of the image.
+ */
+export const generateImageDescription = async (
+    originalImage: File,
+): Promise<string> => {
+    console.log(`Starting image description generation.`);
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+    
+    const originalImagePart = await fileToPart(originalImage);
+    const prompt = `You are an expert at analyzing images and creating descriptive prompts.
+Analyze the provided image and generate a detailed, descriptive prompt that could be used by an image generation AI to create a similar image.
+
+Describe the following aspects:
+- Subject: What is the main subject?
+- Composition: How is the shot framed (e.g., close-up, wide shot)?
+- Setting: Where does the image take place?
+- Lighting: What is the lighting like (e.g., golden hour, studio lighting)?
+- Style: What is the artistic style (e.g., photorealistic, anime, watercolor)?
+- Colors: What are the dominant colors?
+
+Output only the final, detailed prompt as a single paragraph of text. Do not include any other explanations or introductory phrases.`;
+    const textPart = { text: prompt };
+
+    console.log('Sending image to the model for description...');
+    const response: GenerateContentResponse = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: { parts: [originalImagePart, textPart] },
+    });
+    console.log('Received response from model for description.', response);
+    
+    if (response.promptFeedback?.blockReason) {
+        const { blockReason, blockReasonMessage } = response.promptFeedback;
+        const errorMessage = `Request was blocked. Reason: ${blockReason}. ${blockReasonMessage || ''}`;
+        console.error(errorMessage, { response });
+        throw new Error(errorMessage);
+    }
+
+    const description = response.text;
+
+    if (description) {
+        return description.trim();
+    }
+
+    const finishReason = response.candidates?.[0]?.finishReason;
+    const errorMessage = `The AI model did not return a text description. Reason: ${finishReason || 'Unknown'}. This can happen due to safety filters.`;
+    console.error(errorMessage, { response });
+    throw new Error(errorMessage);
+};
