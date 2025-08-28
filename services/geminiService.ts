@@ -222,12 +222,17 @@ If a style attribute is not specified above, you MUST intelligently match it to 
     } else {
         styleInstructions = `
 Key Style Instructions for the new text:
-The new text, "${newText}", MUST perfectly match the style of the original text ("${oldText}"). This includes:
-- Font face and characteristics.
-- Color, gradients, and textures.
-- Size and kerning.
-- Perspective, warping, and rotation.
-- Lighting, shadows, and highlights.
+Your primary task is to make the new text, "${newText}", an absolutely seamless replacement for the original text, "${oldText}". To achieve this, you must follow a strict process:
+1.  **Analyze the Original Text:** Carefully examine "${oldText}" in the image. Identify all of its visual properties with extreme precision.
+2.  **Extract Key Attributes:** Your analysis must determine the following:
+    -   **Font:** The exact font face, weight (bold, regular), and style (italic, normal).
+    -   **Color:** The precise color, including any gradients, textures, or patterns.
+    -   **Size & Scale:** The font size relative to the image and its surroundings.
+    -   **Perspective & Transformation:** Any rotation, skewing, warping, or perspective applied to the text.
+    -   **Lighting & Effects:** How the text interacts with the scene's lighting. Identify and replicate all shadows, highlights, glows, or bevels.
+3.  **Apply to New Text:** Render the new text, "${newText}", using the *exact* attributes you extracted. The new text must occupy the same 3D space as the original.
+
+The final result must be indistinguishable from a real photograph where the new text was present from the beginning.
 `;
     }
 
