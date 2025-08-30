@@ -12,7 +12,7 @@ interface CropPanelProps {
   isCropping: boolean;
 }
 
-type AspectRatio = 'free' | '1:1' | '16:9';
+type AspectRatio = 'free' | '1:1' | '4:3' | '3:4' | '16:9' | '9:16' | '3:2' | '4:5';
 
 const CropPanel: React.FC<CropPanelProps> = ({ onApplyCrop, onSetAspect, isLoading, isCropping }) => {
   const [activeAspect, setActiveAspect] = useState<AspectRatio>('free');
@@ -25,7 +25,12 @@ const CropPanel: React.FC<CropPanelProps> = ({ onApplyCrop, onSetAspect, isLoadi
   const aspects: { name: AspectRatio, value: number | undefined }[] = [
     { name: 'free', value: undefined },
     { name: '1:1', value: 1 / 1 },
+    { name: '4:3', value: 4 / 3 },
+    { name: '3:4', value: 3 / 4 },
     { name: '16:9', value: 16 / 9 },
+    { name: '9:16', value: 9 / 16 },
+    { name: '3:2', value: 3 / 2 },
+    { name: '4:5', value: 4 / 5 },
   ];
 
   return (
@@ -33,7 +38,7 @@ const CropPanel: React.FC<CropPanelProps> = ({ onApplyCrop, onSetAspect, isLoadi
       <h3 className="text-lg font-semibold text-gray-300">Crop Image</h3>
       <p className="text-sm text-gray-400 -mt-2">Click and drag on the image to select a crop area.</p>
       
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-center gap-2">
         <span className="text-sm font-medium text-gray-400">Aspect Ratio:</span>
         {aspects.map(({ name, value }) => (
           <button
