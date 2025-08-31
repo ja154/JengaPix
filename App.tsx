@@ -14,8 +14,9 @@ import AdjustmentPanel from './components/AdjustmentPanel';
 import CropPanel from './components/CropPanel';
 import TextPanel from './components/TextPanel';
 import DescribePanel from './components/DescribePanel';
-import { UndoIcon, RedoIcon, EyeIcon } from './components/icons';
+import { UndoIcon, RedoIcon, CompareIcon } from './components/icons';
 import StartScreen from './components/StartScreen';
+import ImageComparator from './components/ImageComparator';
 
 // Helper to convert a data URL string to a File object
 const dataURLtoFile = (dataurl: string, filename: string): File => {
@@ -50,7 +51,7 @@ const App: React.FC = () => {
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const [aspect, setAspect] = useState<number | undefined>();
-  const [isComparing, setIsComparing] = useState<boolean>(false);
+  const [isCompareModeActive, setIsCompareModeActive] = useState<boolean>(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
   const currentImage = history[historyIndex] ?? null;
@@ -80,6 +81,13 @@ const App: React.FC = () => {
       setOriginalImageUrl(null);
     }
   }, [originalImage]);
+
+  // Effect to disable compare mode when switching to a tab that isn't ideal for it
+  useEffect(() => {
+    if (activeTab === 'crop') {
+        setIsCompareModeActive(false);
+    }
+  }, [activeTab]);
 
 
   const canUndo = historyIndex > 0;
@@ -367,41 +375,6 @@ const App: React.FC = () => {
       return <StartScreen onFileSelect={handleFileSelect} />;
     }
 
-    const imageDisplay = (
-      <div className="relative">
-        {/* Base image is the original, always at the bottom */}
-        {originalImageUrl && (
-            <img
-                key={originalImageUrl}
-                src={originalImageUrl}
-                alt="Original"
-                className="w-full h-auto object-contain max-h-[60vh] rounded-xl pointer-events-none"
-            />
-        )}
-        {/* The current image is an overlay that fades in/out for comparison */}
-        <img
-            ref={imgRef}
-            key={currentImageUrl}
-            src={currentImageUrl}
-            alt="Current"
-            onClick={handleImageClick}
-            className={`absolute top-0 left-0 w-full h-auto object-contain max-h-[60vh] rounded-xl transition-opacity duration-200 ease-in-out ${isComparing ? 'opacity-0' : 'opacity-100'} ${activeTab === 'retouch' ? 'cursor-crosshair' : ''}`}
-        />
-      </div>
-    );
-    
-    // For ReactCrop, we need a single image element. We'll use the current one.
-    const cropImageElement = (
-      <img 
-        ref={imgRef}
-        key={`crop-${currentImageUrl}`}
-        src={currentImageUrl} 
-        alt="Crop this image"
-        className="w-full h-auto object-contain max-h-[60vh] rounded-xl"
-      />
-    );
-
-
     return (
       <div className="w-full max-w-4xl mx-auto flex flex-col items-center gap-6 animate-fade-in">
         <div className="relative w-full shadow-2xl rounded-xl overflow-hidden bg-black/20">
@@ -412,7 +385,12 @@ const App: React.FC = () => {
                 </div>
             )}
             
-            {activeTab === 'crop' ? (
+            {isCompareModeActive && originalImageUrl && currentImageUrl ? (
+              <ImageComparator
+                originalImageUrl={originalImageUrl}
+                currentImageUrl={currentImageUrl}
+              />
+            ) : activeTab === 'crop' ? (
               <ReactCrop 
                 crop={crop} 
                 onChange={c => setCrop(c)} 
@@ -420,11 +398,28 @@ const App: React.FC = () => {
                 aspect={aspect}
                 className="max-h-[60vh]"
               >
-                {cropImageElement}
+                <img 
+                  ref={imgRef}
+                  key={`crop-${currentImageUrl}`}
+                  src={currentImageUrl} 
+                  alt="Crop this image"
+                  className="w-full h-auto object-contain max-h-[60vh] rounded-xl"
+                />
               </ReactCrop>
-            ) : imageDisplay }
+            ) : (
+              <div className="relative">
+                <img
+                    ref={imgRef}
+                    key={currentImageUrl}
+                    src={currentImageUrl}
+                    alt="Current"
+                    onClick={handleImageClick}
+                    className={`w-full h-auto object-contain max-h-[60vh] rounded-xl ${activeTab === 'retouch' ? 'cursor-crosshair' : ''}`}
+                />
+              </div>
+            )}
 
-            {displayHotspot && !isLoading && activeTab === 'retouch' && (
+            {displayHotspot && !isLoading && activeTab === 'retouch' && !isCompareModeActive && (
                 <div 
                     className="absolute rounded-full w-6 h-6 bg-blue-500/50 border-2 border-white pointer-events-none -translate-x-1/2 -translate-y-1/2 z-10"
                     style={{ left: `${displayHotspot.x}px`, top: `${displayHotspot.y}px` }}
@@ -505,16 +500,17 @@ const App: React.FC = () => {
             <div className="h-6 w-px bg-gray-600 mx-1 hidden sm:block"></div>
 
             {canUndo && (
-              <button 
-                  onMouseDown={() => setIsComparing(true)}
-                  onMouseUp={() => setIsComparing(false)}
-                  onMouseLeave={() => setIsComparing(false)}
-                  onTouchStart={() => setIsComparing(true)}
-                  onTouchEnd={() => setIsComparing(false)}
-                  className="flex items-center justify-center text-center bg-white/10 border border-white/20 text-gray-200 font-semibold py-3 px-5 rounded-md transition-all duration-200 ease-in-out hover:bg-white/20 hover:border-white/30 active:scale-95 text-base"
-                  aria-label="Press and hold to see original image"
+              <button
+                  onClick={() => setIsCompareModeActive(!isCompareModeActive)}
+                  disabled={activeTab === 'crop'}
+                  className={`flex items-center justify-center text-center border font-semibold py-3 px-5 rounded-md transition-all duration-200 ease-in-out active:scale-95 text-base disabled:opacity-50 disabled:cursor-not-allowed ${
+                      isCompareModeActive
+                      ? 'bg-blue-500 border-blue-400 text-white shadow-lg shadow-blue-500/30'
+                      : 'bg-white/10 border-white/20 text-gray-200 hover:bg-white/20 hover:border-white/30'
+                  }`}
+                  aria-label="Toggle side-by-side comparison"
               >
-                  <EyeIcon className="w-5 h-5 mr-2" />
+                  <CompareIcon className="w-5 h-5 mr-2" />
                   Compare
               </button>
             )}

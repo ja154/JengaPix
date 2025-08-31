@@ -55,3 +55,10 @@ export const BullseyeIcon: React.FC<{ className?: string }> = ({ className }) =>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 12a3 3 0 100-6 3 3 0 000 6z" />
     </svg>
 );
+
+export const CompareIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 2.25v19.5M12 4.5a7.5 7.5 0 000 15" />
+    </svg>
+);
