@@ -6,7 +6,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop';
-import { generateEditedImage, generateFilteredImage, generateAdjustedImage, generateTextEditImage, generateImageDescription, type TextStyle } from './services/geminiService';
+import { generateEditedImage, generateFilteredImage, generateAdjustedImage, generateTextEditImage, generateImageDescription, generateImageFromPrompt, type TextStyle } from './services/geminiService';
 import Header from './components/Header';
 import Spinner from './components/Spinner';
 import FilterPanel from './components/FilterPanel';
@@ -355,6 +355,28 @@ const App: React.FC = () => {
     setEditHotspot({ x: originalX, y: originalY });
 };
 
+  const handleImageGenerate = useCallback(async (creationPrompt: string) => {
+    if (!creationPrompt.trim()) {
+      setError('Please enter a prompt to generate an image.');
+      return;
+    }
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+        const generatedImageUrl = await generateImageFromPrompt(creationPrompt);
+        const newImageFile = dataURLtoFile(generatedImageUrl, `generated-${Date.now()}.png`);
+        handleImageUpload(newImageFile);
+    } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
+        setError(`Failed to generate the image. ${errorMessage}`);
+        console.error(err);
+    } finally {
+        setIsLoading(false);
+    }
+  }, [handleImageUpload]);
+
   const renderContent = () => {
     if (error) {
        return (
@@ -371,8 +393,17 @@ const App: React.FC = () => {
         );
     }
     
+    if (isLoading && !currentImageUrl) {
+      return (
+        <div className="text-center animate-fade-in flex flex-col items-center justify-center gap-4">
+          <Spinner />
+          <p className="text-gray-300">AI is creating your image...</p>
+        </div>
+      );
+    }
+
     if (!currentImageUrl) {
-      return <StartScreen onFileSelect={handleFileSelect} />;
+      return <StartScreen onFileSelect={handleFileSelect} onImageGenerate={handleImageGenerate} isLoading={isLoading} />;
     }
 
     return (

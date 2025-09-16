@@ -326,3 +326,40 @@ Output only the final, detailed prompt as a single paragraph of text. Do not inc
     console.error(errorMessage, { response });
     throw new Error(errorMessage);
 };
+
+/**
+ * Generates an image from a text prompt.
+ * @param prompt The text prompt describing the desired image.
+ * @returns A promise that resolves to the data URL of the generated image.
+ */
+export const generateImageFromPrompt = async (
+    prompt: string,
+): Promise<string> => {
+    console.log(`Starting image generation from prompt: ${prompt}`);
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+
+    try {
+        const response = await ai.models.generateImages({
+            model: 'imagen-4.0-generate-001',
+            prompt: prompt,
+            config: {
+                numberOfImages: 1,
+                outputMimeType: 'image/png',
+                aspectRatio: '1:1',
+            },
+        });
+        console.log('Received response from model for image generation.', response);
+
+        if (response.generatedImages && response.generatedImages.length > 0) {
+            const base64ImageBytes: string = response.generatedImages[0].image.imageBytes;
+            return `data:image/png;base64,${base64ImageBytes}`;
+        }
+        
+        throw new Error('The AI model did not return an image. This might be due to safety filters or the complexity of the prompt.');
+
+    } catch(err) {
+        console.error('Error during image generation:', err);
+        const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred during image generation.';
+        throw new Error(errorMessage);
+    }
+};
