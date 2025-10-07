@@ -6,7 +6,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop';
-import { generateEditedImage, generateFilteredImage, generateAdjustedImage, generateTextEditImage, generateImageDescription, generateImageFromPrompt, type TextStyle } from './services/geminiService';
+import { generateEditedImage, generateFilteredImage, generateAdjustedImage, generateTextEditImage, generateImageDescription, generateImageFromPrompt, generateRemovedBackground, type TextStyle } from './services/geminiService';
 import Header from './components/Header';
 import Spinner from './components/Spinner';
 import FilterPanel from './components/FilterPanel';
@@ -14,6 +14,7 @@ import AdjustmentPanel from './components/AdjustmentPanel';
 import CropPanel from './components/CropPanel';
 import TextPanel from './components/TextPanel';
 import DescribePanel from './components/DescribePanel';
+import RemoveBgPanel from './components/RemoveBgPanel';
 import { UndoIcon, RedoIcon, CompareIcon } from './components/icons';
 import StartScreen from './components/StartScreen';
 import ImageComparator from './components/ImageComparator';
@@ -35,7 +36,7 @@ const dataURLtoFile = (dataurl: string, filename: string): File => {
     return new File([u8arr], filename, {type:mime});
 }
 
-type Tab = 'retouch' | 'adjust' | 'filters' | 'crop' | 'text' | 'describe';
+type Tab = 'retouch' | 'adjust' | 'filters' | 'crop' | 'text' | 'describe' | 'remove-bg';
 
 const App: React.FC = () => {
   const [history, setHistory] = useState<File[]>([]);
@@ -280,6 +281,28 @@ const App: React.FC = () => {
         setIsLoading(false);
     }
   }, [currentImage]);
+  
+  const handleRemoveBackground = useCallback(async () => {
+    if (!currentImage) {
+      setError('No image loaded to remove background from.');
+      return;
+    }
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+        const resultImageUrl = await generateRemovedBackground(currentImage);
+        const newImageFile = dataURLtoFile(resultImageUrl, `bg-removed-${Date.now()}.png`);
+        addImageToHistory(newImageFile);
+    } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
+        setError(`Failed to remove background. ${errorMessage}`);
+        console.error(err);
+    } finally {
+        setIsLoading(false);
+    }
+  }, [currentImage, addImageToHistory]);
 
   const handleUndo = useCallback(() => {
     if (canUndo) {
@@ -461,7 +484,7 @@ const App: React.FC = () => {
         </div>
         
         <div className="w-full bg-gray-800/80 border border-gray-700/80 rounded-lg p-2 flex items-center justify-center gap-2 backdrop-blur-sm">
-            {(['retouch', 'crop', 'adjust', 'filters', 'text', 'describe'] as Tab[]).map(tab => (
+            {(['retouch', 'remove-bg', 'adjust', 'filters', 'crop', 'text', 'describe'] as Tab[]).map(tab => (
                  <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
@@ -471,7 +494,7 @@ const App: React.FC = () => {
                         : 'text-gray-300 hover:text-white hover:bg-white/10'
                     }`}
                 >
-                    {tab}
+                    {tab === 'remove-bg' ? 'Remove BG' : tab}
                 </button>
             ))}
         </div>
@@ -504,6 +527,7 @@ const App: React.FC = () => {
                     </form>
                 </div>
             )}
+            {activeTab === 'remove-bg' && <RemoveBgPanel onRemoveBackground={handleRemoveBackground} isLoading={isLoading} />}
             {activeTab === 'crop' && <CropPanel onApplyCrop={handleApplyCrop} onSetAspect={setAspect} isLoading={isLoading} isCropping={!!completedCrop?.width && completedCrop.width > 0} />}
             {activeTab === 'adjust' && <AdjustmentPanel onApplyAdjustment={handleApplyAdjustment} isLoading={isLoading} />}
             {activeTab === 'filters' && <FilterPanel onApplyFilter={handleApplyFilter} isLoading={isLoading} />}

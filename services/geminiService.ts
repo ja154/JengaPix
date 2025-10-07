@@ -187,6 +187,42 @@ Output: Return ONLY the final adjusted image. Do not return text.`;
     return handleApiResponse(response, 'adjustment');
 };
 
+/**
+ * Generates an image with the background removed.
+ * @param originalImage The original image file.
+ * @returns A promise that resolves to the data URL of the image with a transparent background.
+ */
+export const generateRemovedBackground = async (
+    originalImage: File,
+): Promise<string> => {
+    console.log(`Starting background removal.`);
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+    
+    const originalImagePart = await fileToPart(originalImage);
+    const prompt = `You are an expert photo editor AI. Your task is to perfectly isolate the main subject(s) from the background in the provided image.
+- Identify the primary subject(s) of the photo.
+- Create a clean and precise cutout of the subject(s), preserving all details like hair, fur, or fine edges.
+- The background must be completely removed and replaced with a transparent canvas.
+- The output MUST be a PNG image with a transparent background.
+- Do not add any shadows, borders, or effects.
+- The subject(s) must remain identical to the original, with no other changes.
+
+Output: Return ONLY the final image with the transparent background. Do not return text.`;
+    const textPart = { text: prompt };
+
+    console.log('Sending image to the model for background removal...');
+    const response: GenerateContentResponse = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image-preview',
+        contents: { parts: [originalImagePart, textPart] },
+        config: {
+            responseModalities: [Modality.IMAGE, Modality.TEXT],
+        },
+    });
+    console.log('Received response from model for background removal.', response);
+    
+    return handleApiResponse(response, 'background removal');
+};
+
 export interface TextStyle {
   font?: string;
   size?: string;
