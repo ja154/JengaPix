@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { TextStyle } from '../services/geminiService';
 
 interface TextPanelProps {
@@ -19,6 +19,37 @@ const TextPanel: React.FC<TextPanelProps> = ({ onApplyTextEdit, isLoading }) => 
   const [color, setColor] = useState('');
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
+
+  // This state holds the hex value for the color picker, and is kept in sync with the `color` state.
+  const [colorPickerValue, setColorPickerValue] = useState('#ffffff');
+
+  useEffect(() => {
+    // This effect synchronizes the color picker's swatch with the text input value.
+    // It attempts to convert any valid CSS color string (like "red", "rgb(0,0,255)") into a hex code.
+    const getHexFromCssColor = (cssColor: string): string | null => {
+        if (!cssColor) return null;
+        if (/^#[0-9a-f]{6}$/i.test(cssColor)) return cssColor.toLowerCase();
+
+        const tempEl = document.createElement("div");
+        tempEl.style.color = cssColor;
+        // The element must be in the DOM to have a computed style.
+        document.body.appendChild(tempEl);
+        const computedColor = window.getComputedStyle(tempEl).color;
+        document.body.removeChild(tempEl);
+
+        const rgbMatch = computedColor.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+        if (rgbMatch) {
+            const toHex = (c: string) => parseInt(c, 10).toString(16).padStart(2, '0');
+            return `#${toHex(rgbMatch[1])}${toHex(rgbMatch[2])}${toHex(rgbMatch[3])}`;
+        }
+        return null; // Return null if the color string is not valid or parsable.
+    };
+
+    const hex = getHexFromCssColor(color);
+    if (hex && hex !== colorPickerValue) {
+        setColorPickerValue(hex);
+    }
+  }, [color, colorPickerValue]);
 
   const canApply = oldText.trim() && newText.trim() && !isLoading;
 
@@ -36,8 +67,6 @@ const TextPanel: React.FC<TextPanelProps> = ({ onApplyTextEdit, isLoading }) => 
   
   const commonInputClass = "flex-grow bg-gray-800 border border-gray-600 text-gray-200 rounded-lg p-4 focus:ring-2 focus:ring-blue-500 focus:outline-none transition w-full disabled:cursor-not-allowed disabled:opacity-60 text-base";
   
-  const isValidHex = (colorStr: string) => /^#[0-9A-F]{6}$/i.test(colorStr);
-
   return (
     <div className="w-full bg-gray-800/50 border border-gray-700 rounded-lg p-4 flex flex-col gap-4 animate-fade-in backdrop-blur-sm">
       <h3 className="text-lg font-semibold text-center text-gray-300">Edit Text in Image</h3>
@@ -95,7 +124,7 @@ const TextPanel: React.FC<TextPanelProps> = ({ onApplyTextEdit, isLoading }) => 
           <div className="relative flex items-center justify-center p-2 h-full">
               <input
                   type="color"
-                  value={isValidHex(color) ? color : '#ffffff'}
+                  value={colorPickerValue}
                   onChange={(e) => setColor(e.target.value)}
                   className="w-10 h-10 p-0 border-none bg-transparent cursor-pointer appearance-none [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-md [&::-webkit-color-swatch]:border-none"
                   disabled={isLoading}
